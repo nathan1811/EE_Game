@@ -483,7 +483,7 @@ body{background:var(--bg);color:var(--cream);font-family:'DM Mono',monospace;ove
 
 /* TOAST */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border2);padding:10px 24px;font-size:.68rem;letter-spacing:1px;z-index:9999;pointer-events:none;white-space:nowrap;animation:toastUp .3s ease both}
-.toast.bad{border-color:var(--red-dim);color:#f5a0a5}.toast.good{border-color:var(--green-dim);color:#9fe8b0}.toast.ach{border-color:#2a1e08;color:var(--gold2);background:#0e0a02}.toast.event-t{border-color:var(--blue);color:var(--blue)}.toast.lvup{border-color:var(--purple);color:#c4b5fd;background:#0e0a18}.toast.info{border-color:var(--teal-dark);color:#a0f0eb}
+.toast.bad{border-color:var(--red-dim);color:#f5a0a5}.toast.good{border-color:var(--green-dim);color:#9fe8b0}.toast.ach{border-color:#2a1e08;color:var(--gold2)}.toast.event-t{border-color:var(--blue);color:var(--blue)}.toast.lvup{border-color:var(--purple);color:#c4b5fd;background:#0e0a18}.toast.info{border-color:var(--teal-dark);color:#a0f0eb}
 
 /* KEYFRAMES */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -979,8 +979,10 @@ function g(id){return document.getElementById(id);}
 function clamp(v,mn=0,mx=100){return Math.max(mn,Math.min(mx,v));}
 function fmtK(n){return n>=1000?(n/1000).toFixed(0)+'k':n;}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ══ BUG FIX #3: corrected double-negative — earthStop now fires properly ══ */
 function show(id){
-  if(!document.getElementById('s-earth').classList.contains('active')===false && id!=='s-earth'){
+  if(document.getElementById('s-earth').classList.contains('active') && id!=='s-earth'){
     earthStop();
   }
   document.querySelectorAll('.screen').forEach(s=>{
@@ -991,6 +993,7 @@ function show(id){
   el.classList.add('active');
   if(id==='s-earth'){el.style.display='block';}
 }
+
 function showToast(msg,type){
   document.querySelectorAll('.toast').forEach(t=>t.remove());
   const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
@@ -1123,13 +1126,79 @@ function tRenderAll(){tRenderHud();tRenderLeft();tRenderCenter();tRenderRight();
 function pollutionColor(p){if(p<30)return'#52b26a';if(p<55)return'#8fcc6a';if(p<75)return'#e8a020';if(p<90)return'#e06030';return'#e63946';}
 function pollutionLabel(p){if(p<30)return'🌤 Clear Skies';if(p<55)return'🌫 Hazy';if(p<75)return'⚠️ Smoggy';if(p<90)return'🔥 Toxic';return'☠️ Crisis Zone';}
 function tRenderHud(){const pPct=Math.min(100,(T.pollution/T_LIMIT)*100);const pCol=pollutionColor(T.pollution);g('tHudPollute').style.width=pPct+'%';g('tHudPollute').style.background=pCol;g('tHudPolluteVal').textContent=T.pollution;const prPct=Math.min(100,(T.profit/(T_TOTAL*30000))*100);g('tHudProfit').style.width=prPct+'%';g('tHudProfitVal').textContent='$'+fmtK(T.profit);}
-function tRenderLeft(){g('tCompanyName').textContent=T.company;const ratio=T.ecoCount/Math.max(1,T.ffCount+T.ecoCount+T.recCount);g('tCompanyTagline').textContent=ratio>=0.5?TAGLINES_GOOD[T.round%TAGLINES_GOOD.length]:TAGLINES_BAD[T.round%TAGLINES_BAD.length];const col=pollutionColor(T.pollution);g('tPolluteBig').textContent=T.pollution;g('tPolluteBig').style.color=col;g('tPolluteLabel').textContent=pollutionLabel(T.pollution);g('tPolluteLabel').style.color=col;const pPct=Math.min(100,(T.pollution/T_LIMIT)*100);g('tPolluteFill').style.width=pPct+'%';g('tPolluteFill').style.background=col;g('tRound').textContent=T.round+' / '+T_TOTAL;g('tProfit').textContent='$'+fmtK(T.profit);g('tFFCount').textContent=T.ffCount;g('tEcoCount').textContent=T.ecoCount;g('tRecCount').textContent=T.recCount;}
+function tRenderLeft(){g('tCompanyName').textContent=T.company;
+  /* ══ BUG FIX #1: include recycles in green ratio for tagline ══ */
+  const ratio=(T.ecoCount+T.recCount)/Math.max(1,T.ffCount+T.ecoCount+T.recCount);
+  g('tCompanyTagline').textContent=ratio>=0.5?TAGLINES_GOOD[T.round%TAGLINES_GOOD.length]:TAGLINES_BAD[T.round%TAGLINES_BAD.length];const col=pollutionColor(T.pollution);g('tPolluteBig').textContent=T.pollution;g('tPolluteBig').style.color=col;g('tPolluteLabel').textContent=pollutionLabel(T.pollution);g('tPolluteLabel').style.color=col;const pPct=Math.min(100,(T.pollution/T_LIMIT)*100);g('tPolluteFill').style.width=pPct+'%';g('tPolluteFill').style.background=col;g('tRound').textContent=T.round+' / '+T_TOTAL;g('tProfit').textContent='$'+fmtK(T.profit);g('tFFCount').textContent=T.ffCount;g('tEcoCount').textContent=T.ecoCount;g('tRecCount').textContent=T.recCount;}
 function tRenderCenter(){const ev=T_EVENTS[Math.min(T.round-1,T_EVENTS.length-1)];g('tRoundEye').textContent='Quarter '+T.round+' of '+T_TOTAL;g('tHeadline').textContent=ev.head;g('tSubline').textContent=ev.sub;g('tCrisisWarn').classList.toggle('show',T.pollution>=75);document.querySelectorAll('.t-choice').forEach(b=>b.disabled=false);}
 function tRenderRight(){const ffD=clamp(40+T.ffCount*3-T.round*1.5,0,100);const ecoD=clamp(20+T.ecoCount*4+T.round*2,0,100);const recD=clamp(15+T.recCount*5+T.round,0,100);const maxD=Math.max(ffD,ecoD,recD,1);g('tDemand').innerHTML=[{label:'Fast Fashion',val:ffD,color:'#e63946'},{label:'Eco',val:ecoD,color:'#52b26a'},{label:'Recycled',val:recD,color:'#2ec4b6'},].map(d=>`<div class="demand-row"><div class="demand-lbl">${d.label}</div><div class="demand-bar-wrap"><div class="demand-bar-fill" style="width:${(d.val/maxD)*100}%;background:${d.color}"></div></div><div class="demand-val">${Math.round(d.val)}%</div></div>`).join('');const chart=g('tHistChart');chart.innerHTML='';T.history.slice(-10).forEach(type=>{const colors={ff:'#e63946',eco:'#52b26a',rec:'#2ec4b6'};const labels={ff:'FF',eco:'ECO',rec:'REC'};const heights={ff:42,eco:26,rec:16};const div=document.createElement('div');div.className='h-bar-group';div.innerHTML=`<div class="h-bar" style="height:${heights[type]}px;background:${colors[type]};opacity:.8"></div><div class="h-bar-lbl" style="color:${colors[type]}">${labels[type]}</div>`;chart.appendChild(div);});g('tPressure').textContent=PRESSURE_MSGS[T.round%PRESSURE_MSGS.length];const remaining=T_TOTAL-T.round;const headroom=T_LIMIT-T.pollution;if(headroom<=0){g('tForecast').innerHTML='<span style="color:var(--red)">🚨 Pollution limit exceeded!</span>';}else if(remaining===0){g('tForecast').innerHTML='<span style="color:var(--teal)">Final quarter!</span>';}else{const safeFF=Math.floor(headroom/10);g('tForecast').innerHTML=`${remaining} quarters left. At most <strong style="color:var(--red)">${safeFF} more fast-fashion runs</strong>.`;}}
 function tRenderFactory(){const slots=12;const html=T.history.slice(-slots).map(type=>{const cls={ff:'ff-u',eco:'eco-u',rec:'rec-u'};const emo={ff:'🏭',eco:'🌿',rec:'♻️'};return`<div class="factory-unit ${cls[type]}">${emo[type]}</div>`;}).join('');const empties=Array(Math.max(0,slots-T.history.length)).fill('<div class="factory-unit empty-u"></div>').join('');g('tFactory').innerHTML=html+empties;}
 function tChoose(type){const effects={ff:{profit:30000,pollution:+10},eco:{profit:15000,pollution:+2},rec:{profit:5000,pollution:-8}};const e=effects[type];T.profit+=e.profit;T.pollution=Math.max(0,T.pollution+e.pollution);T.history.push(type);if(type==='ff')T.ffCount++;else if(type==='eco')T.ecoCount++;else T.recCount++;const labels={ff:'Mass Production Run',eco:'Ethical Collection',rec:'Upcycle Drive'};tAddLog(type,labels[type],e.profit);if(type==='ff')showToast('🏭 +$'+fmtK(e.profit)+' | +10 Pollution','bad');else if(type==='eco')showToast('🌿 +$'+fmtK(e.profit)+' | +2 Pollution','good');else showToast('♻️ +$'+fmtK(e.profit)+' | −8 Pollution','info');if(T.pollution>=T_LIMIT){tRenderAll();tAddLog('sys','☠️ Climate crisis triggered!','');setTimeout(()=>endTycoon(false,true),900);return;}if(T.round>=T_TOTAL){tRenderAll();setTimeout(()=>endTycoon(false,false),800);return;}T.round++;tRenderAll();}
-function endTycoon(early=false,crisis=false){show('s-tycoon-end');const p=T.profit,pol=T.pollution;const ratio=T.ecoCount/Math.max(1,T.ffCount+T.ecoCount+T.recCount);let grade,gradeColor,cls,title,desc,stripe;if(crisis){grade='F';gradeColor='#e63946';cls='bad';title='Climate Crisis';stripe='linear-gradient(90deg,#e63946,#c0392b)';desc="Your pollution crossed the point of no return. The climate crisis wiped out consumer confidence.";}else if(early){grade='—';gradeColor='#888';cls='mid';title='Left Early';stripe='linear-gradient(90deg,#888,#555)';desc="You stepped away before the game was decided.";}else if(ratio>=0.6&&pol<60){grade='A';gradeColor='#2ec4b6';cls='good';title='Ethical Empire';stripe='linear-gradient(90deg,#2ec4b6,#52b26a)';desc="You built a profitable business without sacrificing the environment.";}else if(ratio>=0.4||pol<80){grade='C';gradeColor='#e8a020';cls='mid';title='Calculated Compromise';stripe='linear-gradient(90deg,#e8a020,#f5cc80)';desc="A mixed record. Some green choices, some greedy ones.";}else{grade='D';gradeColor='#e06030';cls='bad';title='Fast Fashion Baron';stripe='linear-gradient(90deg,#e63946,#e8a020)';desc="Rich in profit, bankrupt in conscience."}
-g('tEndStripe').style.background=stripe;const pCol=cls==='good'?'#2ec4b6':cls==='mid'?'#e8a020':'#e63946';g('tEndProfit').textContent='$'+fmtK(p);g('tEndProfit').style.color=pCol;g('tEndStatus').textContent=crisis?'☠️ Climate Crisis':pollutionLabel(pol);g('tGradeLetter').textContent=grade;g('tGradeLetter').style.color=gradeColor;g('tRcVerdict').className='t-rc-verdict '+cls;g('tRcVerdict').textContent=cls==='good'?'✦ Green Ending':cls==='mid'?'◈ Mixed Verdict':'✖ Bad Ending';g('tRcTitle').textContent=title;g('tRcDesc').textContent=desc;g('tRcStats').innerHTML=[{k:'Total Profit',v:'$'+fmtK(p),c:p>200000?'grn':'gld'},{k:'Final Pollution',v:pol,c:pol<50?'grn':pol<80?'gld':'red'},{k:'Fast Fashion Runs',v:T.ffCount,c:'red'},{k:'Eco Runs',v:T.ecoCount,c:'grn'},{k:'Recycle Runs',v:T.recCount,c:T.recCount>0?'blue':'red'},{k:'Quarters Completed',v:T.history.length+' / '+T_TOTAL,c:'gld'},].map(r=>`<div class="rc-stat"><div class="rc-sk">${r.k}</div><div class="rc-sv ${r.c||''}">${r.v}</div></div>`).join('');}
+
+function endTycoon(early=false,crisis=false){
+  show('s-tycoon-end');
+  const p=T.profit,pol=T.pollution;
+
+  /* ══ BUG FIX #2: recycles count as green in ratio → recycle-only run scores A ══ */
+  const ratio=(T.ecoCount+T.recCount)/Math.max(1,T.ffCount+T.ecoCount+T.recCount);
+
+  let grade,gradeColor,cls,title,desc,stripe;
+  if(crisis){
+    grade='F';gradeColor='#e63946';cls='bad';
+    title='Climate Crisis';stripe='linear-gradient(90deg,#e63946,#c0392b)';
+    desc="Your pollution crossed the point of no return. The climate crisis wiped out consumer confidence.";
+  } else if(early){
+    grade='—';gradeColor='#888';cls='mid';
+    title='Left Early';stripe='linear-gradient(90deg,#888,#555)';
+    desc="You stepped away before the game was decided.";
+  } else if(ratio>=0.7&&pol<40){
+    /* Pure eco/recycle run, very low pollution → A+ */
+    grade='A+';gradeColor='#2ec4b6';cls='good';
+    title='Green Empire';stripe='linear-gradient(90deg,#2ec4b6,#52b26a)';
+    desc="Exceptional. You built a thriving business while actively healing the environment.";
+  } else if(ratio>=0.6&&pol<60){
+    /* Strong green run → A */
+    grade='A';gradeColor='#2ec4b6';cls='good';
+    title='Ethical Empire';stripe='linear-gradient(90deg,#2ec4b6,#52b26a)';
+    desc="You built a profitable business without sacrificing the environment.";
+  } else if(ratio>=0.4||pol<80){
+    /* Mixed or moderate → B (was missing — jumped straight to C) */
+    grade='B';gradeColor='#8fcc6a';cls='good';
+    title='Responsible Producer';stripe='linear-gradient(90deg,#8fcc6a,#c8e86a)';
+    desc="More green than not. Your record shows a genuine effort to balance profit with responsibility.";
+  } else if(ratio>=0.2||pol<95){
+    /* Mostly fast fashion → C */
+    grade='C';gradeColor='#e8a020';cls='mid';
+    title='Calculated Compromise';stripe='linear-gradient(90deg,#e8a020,#f5cc80)';
+    desc="A mixed record. Some green choices, some greedy ones.";
+  } else {
+    /* Almost all fast fashion, near-crisis pollution → D */
+    grade='D';gradeColor='#e06030';cls='bad';
+    title='Fast Fashion Baron';stripe='linear-gradient(90deg,#e63946,#e8a020)';
+    desc="Rich in profit, bankrupt in conscience.";
+  }
+
+  g('tEndStripe').style.background=stripe;
+  const pCol=cls==='good'?'#2ec4b6':cls==='mid'?'#e8a020':'#e63946';
+  g('tEndProfit').textContent='$'+fmtK(p);
+  g('tEndProfit').style.color=pCol;
+  g('tEndStatus').textContent=crisis?'☠️ Climate Crisis':pollutionLabel(pol);
+  g('tGradeLetter').textContent=grade;
+  g('tGradeLetter').style.color=gradeColor;
+  g('tRcVerdict').className='t-rc-verdict '+cls;
+  g('tRcVerdict').textContent=cls==='good'?'✦ Green Ending':cls==='mid'?'◈ Mixed Verdict':'✖ Bad Ending';
+  g('tRcTitle').textContent=title;
+  g('tRcDesc').textContent=desc;
+  g('tRcStats').innerHTML=[
+    {k:'Total Profit',v:'$'+fmtK(p),c:p>200000?'grn':'gld'},
+    {k:'Final Pollution',v:pol,c:pol<50?'grn':pol<80?'gld':'red'},
+    {k:'Fast Fashion Runs',v:T.ffCount,c:'red'},
+    {k:'Eco Runs',v:T.ecoCount,c:'grn'},
+    {k:'Recycle Runs',v:T.recCount,c:T.recCount>0?'blue':'red'},
+    {k:'Quarters Completed',v:T.history.length+' / '+T_TOTAL,c:'gld'},
+  ].map(r=>`<div class="rc-stat"><div class="rc-sk">${r.k}</div><div class="rc-sv ${r.c||''}">${r.v}</div></div>`).join('');
+}
+
 function tAddLog(type,msg,profit){const el=g('tLogBody'),row=document.createElement('div');row.className='t-log-row';const types={ff:'ff',eco:'eco',rec:'rec',sys:'sys'};const labels={ff:'FF',eco:'ECO',rec:'REC',sys:'SYS'};const profStr=profit?'+$'+fmtK(profit):'';row.innerHTML=`<span class="t-log-type ${types[type]||'sys'}">${labels[type]||'SYS'}</span><span class="t-log-msg">${msg}</span><span class="t-log-profit">${profStr}</span>`;el.prepend(row);}
 
 /* ══════════════════════════════════════════════════════
